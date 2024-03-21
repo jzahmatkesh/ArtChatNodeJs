@@ -7,8 +7,6 @@ const cors = require('cors');
 require('./wbsocket');
 const crypto = require('crypto');
 const app = express();
-const ffmpegStatic = require('ffmpeg-static');
-const ffmpeg = require('fluent-ffmpeg');
 
 
 app.use(cors())
@@ -100,9 +98,8 @@ app.post('/upload', async (req, res) => {
         if (err) {
             res.status(500).send('{"Error" : "Error saving data to file"}');
         } else {
-            convertaudio(pth, changeExtension(pth, ".mp3"));
             try {
-                const rows = await sql.query`Exec PrcAddImage ${req.headers.token}, ${req.headers.type}, ${req.headers.id}, ${req.headers.idx}, ${changeExtension(filename, '.mp3')}`;
+                const rows = await sql.query`Exec PrcAddImage ${req.headers.token}, ${req.headers.type}, ${req.headers.id}, ${req.headers.idx}, ${filename}`;
                 res.status(200).send(`{"unique": "${rows.recordset[0].Unique}", "chatid": "${rows.recordset[0].ChatID}"}`);
             }
             catch (e) {
@@ -129,29 +126,3 @@ app.listen(port, () => {
     console.log(`ArtAd Rest Api running at http://localhost:${port}`)
 });
 
-
-function convertaudio(from, to) {
-    ffmpeg.setFfmpegPath(ffmpegStatic);
-    ffmpeg()
-        .input(from)
-        .outputOptions('-ab', '192k')
-        .saveToFile(to)
-        .on('progress', (progress) => {
-            if (progress.percent) {
-                console.log(`Processing: ${Math.floor(progress.percent)}% done`);
-            }
-        })
-        .on('end', () => {
-            console.log('FFmpeg has finished.');
-            fs.unlink(from, (err) => {
-                if (err) {
-                    console.error(err);
-                } else {
-                    console.log('File is deleted.');
-                }
-            });
-        })
-        .on('error', (error) => {
-            console.error(error);
-        });
-}
