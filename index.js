@@ -7,9 +7,12 @@ const cors = require('cors');
 require('./wbsocket');
 const crypto = require('crypto');
 const app = express();
-const ffmpegStatic = require('ffmpeg-static');
+// const ffmpegStatic = require('ffmpeg-static');
+// const ffmpeg = require('fluent-ffmpeg');
+const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 const ffmpeg = require('fluent-ffmpeg');
 
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 app.use(cors())
 
