@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
-require('./wbsocket').default;
+require('./wbsocket');
 const crypto = require('crypto');
 const app = express();
 const ffmpegStatic = require('ffmpeg-static');
