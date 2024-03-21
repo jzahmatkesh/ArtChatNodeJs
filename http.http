@@ -1,0 +1,37 @@
+GET http://37.148.210.69:3016/user
+content-type: application/json
+token: F707A522-2A19-4B28-9046-BC039047772C
+
+
+###
+POST http://37.148.210.69:3030/user/verifybytoken
+content-type: application/json
+
+{
+    "token": "F707A522-2A19-4B28-9046-BC039047772C"
+}
+
+###
+POST http://localhost:3016/user/authenticate
+content-type: application/json
+
+{
+    "email": "javad.zahmatkesh@gmail.com",
+    "password": "c4ca4238a0b923820dcc509a6f75849b"    
+}
+
+
+###
+POST http://localhost:3016/game/guessanswer/
+content-type: application/json
+
+{
+    "token": "cf0cce71-1124-4cb7-bf33-9223c3e437ee",
+    "gameid": 1,
+    "answer": "this is not bazaar"
+}
+
+
+###
+GET http://192.168.1.45:3016/preview/unknown
+content-type: application/json
