@@ -1,10 +1,10 @@
-const WebSocket = require('ws');
-const User = require('./datamodel/user');
-const config = require('./config');
-const sql = require('mssql')
-const pushnotif = require('./pushnotification');
+import { Server, OPEN } from 'ws';
+import User from './datamodel/user';
+import { sqlConfig } from './config';
+import { connect, query } from 'mssql';
+import { pushnotification } from './pushnotification';
 
-const wss = new WebSocket.Server({ port: 8090 });
+const wss = new Server({ port: 8090 });
 
 
 const dataModel = [];
@@ -21,7 +21,7 @@ function userAlreadyOnline(id) {
 
 function broadcast(msg, ids) {
     for (let i = dataModel.length - 1; i >= 0; i--) {
-        if (dataModel[i].ws.readyState === WebSocket.OPEN && (ids.length == 0 || ids.includes(dataModel[i].id))) {
+        if (dataModel[i].ws.readyState === OPEN && (ids.length == 0 || ids.includes(dataModel[i].id))) {
             dataModel[i].ws.send(msg);
         }
     }
@@ -33,7 +33,7 @@ function broadcastonlineUsers() {
         ids.push(dataModel[i].id);
     }
     for (let i = dataModel.length - 1; i >= 0; i--) {
-        if (dataModel[i].ws.readyState === WebSocket.OPEN && (ids.length == 0 || ids.includes(dataModel[i].id))) {
+        if (dataModel[i].ws.readyState === OPEN && (ids.length == 0 || ids.includes(dataModel[i].id))) {
             dataModel[i].ws.send(JSON.stringify({ 'onlineusers': ids }));
         }
     }
@@ -91,8 +91,8 @@ wss.on('connection', (ws, req) => {
 
 async function Chat(ws, obj) {
     try {
-        await sql.connect(config.sqlConfig);
-        const rows = await sql.query`Exec PrcChat ${obj.token},${obj.from},${obj.to},${obj.msg}`;
+        await connect(sqlConfig);
+        const rows = await query`Exec PrcChat ${obj.token},${obj.from},${obj.to},${obj.msg}`;
         if (rows.recordset.length > 0) {
             if (obj.to > 100) {
                 broadcast(
@@ -116,15 +116,15 @@ async function Chat(ws, obj) {
     }
     catch (e) {
         console.log(`Exec PrcLogError 'chat message ', ${e.message}`);
-        await sql.query`Exec PrcLogError 'chat message ', ${e.message}`;
+        await query`Exec PrcLogError 'chat message ', ${e.message}`;
         ws.send(JSON.stringify({ 'error': 'خطا در ثبت پیام' }));
     }
 }
 
 async function delChat(ws, obj) {
     try {
-        await sql.connect(config.sqlConfig);
-        const rows = await sql.query`Exec PrcDelChat ${obj.token},${obj.id}`;
+        await connect(sqlConfig);
+        const rows = await query`Exec PrcDelChat ${obj.token},${obj.id}`;
         if (rows.recordset.length > 0) {
             const members = rows.recordset[0].GrpMembers.substring(1).split(",");
             var mem = [];
@@ -139,15 +139,15 @@ async function delChat(ws, obj) {
     }
     catch (e) {
         console.log(`Exec PrcLogError 'Delete chat message ', ${e.message}`);
-        await sql.query`Exec PrcLogError 'Delete chat message ', ${e.message}`;
+        await query`Exec PrcLogError 'Delete chat message ', ${e.message}`;
         ws.send(JSON.stringify({ 'error': 'خطا در حذف پیام' }));
     }
 }
 
 async function ChatAttach(ws, obj) {
     try {
-        await sql.connect(config.sqlConfig);
-        const rows = await sql.query`Exec PrcChatByID ${obj.id}`;
+        await connect(sqlConfig);
+        const rows = await query`Exec PrcChatByID ${obj.id}`;
         if (rows.recordset.length > 0) {
             if (rows.recordset[0].To > 100) {
                 broadcast(
@@ -170,7 +170,7 @@ async function ChatAttach(ws, obj) {
     }
     catch (e) {
         console.log(`Exec PrcLogError 'chat attach ', ${e.message}`);
-        await sql.query`Exec PrcLogError 'chat attach ', ${e.message}`;
+        await query`Exec PrcLogError 'chat attach ', ${e.message}`;
         ws.send(JSON.stringify({ 'error': 'خطا در ارسال پیام فایل' }));
     }
 }
@@ -184,14 +184,14 @@ async function ChatTyping(ws, obj) {
     }
     catch (e) {
         console.log(`Exec PrcLogError 'chat Typing ', ${e.message}`);
-        await sql.query`Exec PrcLogError 'chat typing ', ${e.message}`;
+        await query`Exec PrcLogError 'chat typing ', ${e.message}`;
     }
 }
 
 async function ChatLike(ws, obj) {
     try {
-        await sql.connect(config.sqlConfig);
-        const rows = await sql.query`Exec PrcChatLike ${obj.token},${obj.id},${obj.kind}`;
+        await connect(sqlConfig);
+        const rows = await query`Exec PrcChatLike ${obj.token},${obj.id},${obj.kind}`;
         if (rows.recordset.length > 0) {
             if (rows.recordset[0].To > 100) {
                 broadcast(
@@ -214,26 +214,26 @@ async function ChatLike(ws, obj) {
     }
     catch (e) {
         console.log(`Exec PrcLogError 'chat Like ', ${e.message}`);
-        await sql.query`Exec PrcLogError 'chat Like ', ${e.message}`;
+        await query`Exec PrcLogError 'chat Like ', ${e.message}`;
         ws.send(JSON.stringify({ 'error': 'خطا در ثبت تغییرات پیام' }));
     }
 }
 
 async function updateFCmToken(obj) {
     try {
-        await sql.connect(config.sqlConfig);
-        await sql.query`Exec PrcUpdateFcmToken ${obj.fcmtoken},${obj.token}`;
+        await connect(sqlConfig);
+        await query`Exec PrcUpdateFcmToken ${obj.fcmtoken},${obj.token}`;
     }
     catch (e) {
         console.log(`Exec PrcLogError 'update fcm token', ${e.message}`);
-        await sql.query`Exec PrcLogError 'update fcm token', ${e.message}`;
+        await query`Exec PrcLogError 'update fcm token', ${e.message}`;
     }
 }
 
 async function sendpushnotification(ws, obj) {
     try {
         if (obj.tofcmtoken) {
-            pushnotif.pushnotification(obj.tofcmtoken, obj.title, obj.note, obj);
+            pushnotification(obj.tofcmtoken, obj.title, obj.note, obj);
         }
         // else {
         //     await sql.connect(config.sqlConfig);
@@ -245,22 +245,22 @@ async function sendpushnotification(ws, obj) {
     }
     catch (e) {
         ws.send(JSON.stringify({ 'onlinesupport': 1, 'type': 'error', 'msg': `${e.message}` }));
-        await sql.query`Exec PrcLogError 'request online support', ${e.message}`;
+        await query`Exec PrcLogError 'request online support', ${e.message}`;
     }
 }
 
 async function seenChat(obj) {
     if (obj.from > 100 && obj.to > 100)
         try {
-            await sql.connect(config.sqlConfig);
-            await sql.query`Exec PrcSeenChat ${obj.from},${obj.to}`;
+            await connect(sqlConfig);
+            await query`Exec PrcSeenChat ${obj.from},${obj.to}`;
         }
         catch (e) {
             console.log(`Exec PrcLogError 'seen chat', ${e.message}`);
-            await sql.query`Exec PrcLogError 'seen chat', ${e.message}`;
+            await query`Exec PrcLogError 'seen chat', ${e.message}`;
         }
 }
 
-module.exports = {
+export default {
     broadcast
 }
